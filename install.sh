@@ -27,6 +27,7 @@ DHCP_END="192.168.100.200"
 DNS_SERVER="8.8.8.8"
 PORTAL_DOMAIN="portal.zaanet.xyz"
 PORTAL_PORT="80"
+MAIN_SERVER_URL="https//www.zaanet.xyz"
 
 show_banner() {
     clear
@@ -177,32 +178,16 @@ get_essential_config() {
     echo "🔧 Most settings are pre-configured. Only server details are required:"
     echo ""
     
-    # Main server URL
-    read -p "🌐 Enter your main server URL: " MAIN_SERVER_URL
-    while [[ -z "$MAIN_SERVER_URL" ]]; do
-        echo "❌ Main server URL is required for authentication!"
-        echo "💡 Example: https://api.yourcompany.com"
-        read -p "🌐 Enter your main server URL: " MAIN_SERVER_URL
-    done
-    
-    # API Key
-    read -p "🔑 Enter your main server API key: " MAIN_SERVER_API_KEY
-    while [[ -z "$MAIN_SERVER_API_KEY" ]]; do
-        echo "❌ API key is required for server authentication!"
-        read -p "🔑 Enter your main server API key: " MAIN_SERVER_API_KEY
-    done
-    
     # Contract ID
     read -p "📜 Enter your contract/location ID: " CONTRACT_ID
     while [[ -z "$CONTRACT_ID" ]]; do
         echo "❌ Contract ID is required to identify this installation!"
-        echo "💡 Example: HOTEL_001, CAFE_DOWNTOWN, HOME_SMITH"
         read -p "📜 Enter your contract/location ID: " CONTRACT_ID
     done
     
     # Optional customizations
     echo ""
-    echo -e "${YELLOW}📶 Optional Customizations (press Enter for defaults):${NC}"
+    echo -e "${YELLOW}📶 Required Customizations (press Enter for defaults):${NC}"
     
     read -p "📡 Wi-Fi network name [default: $WIFI_SSID]: " CUSTOM_SSID
     if [[ -n "$CUSTOM_SSID" ]]; then
@@ -229,7 +214,6 @@ get_essential_config() {
     echo "   🔌 Wireless Interface: $WIRELESS_INTERFACE"
     echo "   🌐 Internet Interface: $ETHERNET_INTERFACE"
     echo "   🌍 Main Server: $MAIN_SERVER_URL"
-    echo "   🔑 API Key: ${MAIN_SERVER_API_KEY:0:8}..."
     echo "   📜 Contract ID: $CONTRACT_ID"
     echo "   🚀 Auto-start: $AUTO_START"
     echo ""
@@ -369,7 +353,7 @@ configure_network_services() {
     cat > /etc/hostapd/hostapd.conf << EOF
 # ZaaNet Hostapd Configuration - Auto-generated
 interface=$WIRELESS_INTERFACE
-driver=nl80211
+# driver=nl80211
 ssid=$WIFI_SSID
 hw_mode=g
 channel=6
