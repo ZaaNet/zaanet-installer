@@ -474,7 +474,7 @@ to_zaanet_mode() {
   fi
   
   # Bring up interface
-sudo ip link set "\$INTERFACE" up
+  sudo ip link set "\$INTERFACE" down
   sleep 2
   sudo ip link set "\$INTERFACE" up
   
