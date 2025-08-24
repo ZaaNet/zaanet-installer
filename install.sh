@@ -26,8 +26,8 @@ DHCP_START="192.168.100.100"
 DHCP_END="192.168.100.200"
 DNS_SERVER="8.8.8.8"
 PORTAL_DOMAIN="portal.zaanet.xyz"
-PORTAL_PORT="80"
-MAIN_SERVER_URL="https//www.zaanet.xyz"
+PORTAL_PORT="3000"
+MAIN_SERVER_URL="https://www.zaanet.xyz"
 
 show_banner() {
     clear
@@ -187,16 +187,11 @@ get_essential_config() {
     
     # Optional customizations
     echo ""
-    echo -e "${YELLOW}📶 Required Customizations (press Enter for defaults):${NC}"
+    echo -e "${YELLOW}📶 Required Customizations (Don't skip this part:${NC}"
     
     read -p "📡 Wi-Fi network name [default: $WIFI_SSID]: " CUSTOM_SSID
     if [[ -n "$CUSTOM_SSID" ]]; then
         WIFI_SSID="$CUSTOM_SSID"
-    fi
-    
-    read -p "🌐 Portal domain [default: $PORTAL_DOMAIN]: " CUSTOM_DOMAIN
-    if [[ -n "$CUSTOM_DOMAIN" ]]; then
-        PORTAL_DOMAIN="$CUSTOM_DOMAIN"
     fi
     
     # Auto-start option
