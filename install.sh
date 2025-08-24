@@ -239,7 +239,6 @@ install_dependencies() {
         iptables iptables-persistent \
         iw wireless-tools \
         systemd net-tools \
-        nginx \
         jq
     
     # Install Node.js (LTS)
@@ -475,8 +474,9 @@ to_zaanet_mode() {
   fi
   
   # Bring up interface
-  sudo ip link set "\$INTERFACE" up
+sudo ip link set "\$INTERFACE" up
   sleep 2
+  sudo ip link set "\$INTERFACE" up
   
   # Remove existing IP and assign portal IP
   sudo ip addr flush dev "\$INTERFACE"
