@@ -446,18 +446,6 @@ to_normal_mode() {
   # Remove ZaaNet IP address
   sudo ip addr del "\$IP_ADDRESS" dev "\$INTERFACE" 2>/dev/null || true
   
-  # Restore systemd-resolved
-  sudo systemctl enable systemd-resolved --quiet
-  sudo systemctl start systemd-resolved --quiet
-  
-  # Restore resolv.conf
-  sudo rm -f /etc/resolv.conf
-  if [[ -f /etc/resolv.conf.bak ]]; then
-    sudo mv /etc/resolv.conf.bak /etc/resolv.conf
-  else
-    sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-  fi
-  
   # Restore WiFi Adapter
   sudo ip link set \$INTERFACE up
   sudo systemctl restart NetworkManager 2>/dev/null || true
@@ -476,12 +464,6 @@ to_zaanet_mode() {
   fi
   
   trap 'log "❌ Error occurred, reverting to normal mode..."; to_normal_mode; exit 1' ERR
-  
-  # Stop and disable systemd-resolved
-  sudo systemctl stop systemd-resolved
-  sudo systemctl disable systemd-resolved --quiet
-  sudo mv /etc/resolv.conf /etc/resolv.conf.bak 2>/dev/null || true
-  echo "nameserver \$DNS_SERVER" | sudo tee /etc/resolv.conf
   
   # Enable and start hostapd
   sudo systemctl unmask hostapd
