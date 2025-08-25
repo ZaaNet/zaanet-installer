@@ -19,7 +19,7 @@ ZAANET_DIR="/opt/zaanet"
 ZAANET_USER="zaanet"
 GITHUB_REPO="https://github.com/ZaaNet/public-release-v1.0.0.git"
 
-# Fixed Network Configuration (Works for all installations)
+# Network Configuration (Works for all installations)
 WIFI_SSID="ZaaNet-Portal"
 PORTAL_IP="192.168.100.1"
 DHCP_START="192.168.100.100"
