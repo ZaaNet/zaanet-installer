@@ -456,7 +456,11 @@ to_normal_mode() {
   # Remove ZaaNet IP address
   sudo ip addr del "\$IP_ADDRESS" dev "\$INTERFACE" 2>/dev/null || true
   
-  # Restore WiFi Adapter
+  # Re-enable NetworkManager management
+  log "🔌 Re-enabling NetworkManager management..."
+  nmcli dev set "\$INTERFACE" managed yes 2>/dev/null || log "⚠️ Could not re-enable NetworkManager management"
+  
+  # Restore WiFi functionality
   sudo ip link set \$INTERFACE up
   sudo systemctl restart NetworkManager 2>/dev/null || true
 
@@ -475,6 +479,14 @@ to_zaanet_mode() {
   
   trap 'log "❌ Error occurred, reverting to normal mode..."; to_normal_mode; exit 1' ERR
   
+  # Disable NetworkManager management of wireless interface
+  log "🔌 Preparing wireless interface..."
+  nmcli device disconnect "\$INTERFACE" 2>/dev/null || log "⚠️ Interface not connected to NetworkManager"
+  nmcli dev set "\$INTERFACE" managed no 2>/dev/null || log "⚠️ Could not disable NetworkManager management"
+  
+  # Brief pause to let NetworkManager release the interface
+  sleep 2
+  
   # Enable and start hostapd
   sudo systemctl unmask hostapd
   sudo systemctl enable hostapd --quiet
@@ -489,7 +501,7 @@ to_zaanet_mode() {
     exit 1
   fi
   
-  # Bring up interface
+  # Bring up interface and assign IP
   sudo ip link set "\$INTERFACE" down
   sleep 2
   sudo ip link set "\$INTERFACE" up
