@@ -384,7 +384,7 @@ EOF
 # ZaaNet Dnsmasq Configuration - Auto-generated
 interface=$WIRELESS_INTERFACE
 dhcp-range=$DHCP_START,$DHCP_END,12h
-address=/$PORTAL_DOMAIN/$PORTAL_IP
+address=/#/$PORTAL_IP
 domain-needed
 no-dhcp-interface=$ETHERNET_INTERFACE
 bogus-priv
@@ -661,6 +661,26 @@ setup_nat() {
   fi
 }
 
+setup_http_redirection() {
+  log "🔀 Setting up HTTP redirection for captive portal..."
+  
+  # Redirect all HTTP traffic (port 80) to captive portal
+  # This catches all web browsing attempts
+  iptables -t nat -A PREROUTING -i "\$LAN_IF" -p tcp --dport 80 -j DNAT --to-destination "\$PORTAL_IP:\$PORTAL_PORT"
+  
+  # Redirect HTTPS traffic (port 443) to HTTP captive portal
+  # Note: This will cause certificate warnings, but that's normal for captive portals
+  iptables -t nat -A PREROUTING -i "\$LAN_IF" -p tcp --dport 443 -j DNAT --to-destination "\$PORTAL_IP:\$PORTAL_PORT"
+  
+  # Allow traffic TO the captive portal from LAN clients
+  iptables -A FORWARD -i "\$LAN_IF" -d "\$PORTAL_IP" -p tcp --dport "\$PORTAL_PORT" -j ACCEPT
+  
+  # Allow response traffic FROM the captive portal back to LAN clients
+  iptables -A FORWARD -o "\$LAN_IF" -s "\$PORTAL_IP" -p tcp --sport "\$PORTAL_PORT" -j ACCEPT
+  
+  log "✅ HTTP redirection configured - all web traffic redirected to captive portal"
+}
+
 # Setup basic connectivity rules
 setup_basic_rules() {
   log "🔗 Setting up basic connectivity rules..."
@@ -778,6 +798,7 @@ main() {
   cleanup_rules
   setup_policies
   setup_nat
+  setup_http_redirection
   setup_basic_rules
   create_authenticated_chain
   create_blocked_chain
