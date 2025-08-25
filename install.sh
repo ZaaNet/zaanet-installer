@@ -266,13 +266,29 @@ create_system_user() {
     echo "👤 Creating ZaaNet system user..."
     
     if ! id "$ZAANET_USER" &>/dev/null; then
-        useradd -r -d "$ZAANET_DIR" -s /bin/bash "$ZAANET_USER" -c "ZaaNet Service User"
+        # Create user with home directory and bash shell (like a regular user, not system user)
+        useradd -m -s /bin/bash "$ZAANET_USER" -c "ZaaNet Service User"
         log "Created user: $ZAANET_USER"
     else
         log "User $ZAANET_USER already exists"
+        # Ensure user has proper shell and home directory
+        usermod -s /bin/bash "$ZAANET_USER"
+        usermod -d "/home/$ZAANET_USER" "$ZAANET_USER"
     fi
     
-    success "✅ System user ready"
+    # Give zaanet complete sudo privileges
+    log "Granting complete sudo privileges to $ZAANET_USER..."
+    tee /etc/sudoers.d/zaanet << EOF
+# ZaaNet user - complete sudo privileges
+$ZAANET_USER ALL=(ALL) NOPASSWD: ALL
+EOF
+    
+    chmod 440 /etc/sudoers.d/zaanet
+    
+    # Add to common groups for device access
+    usermod -aG sudo,adm,dialout,cdrom,floppy,audio,dip,video,plugdev,netdev,lpadmin "$ZAANET_USER" 2>/dev/null || true
+    
+    success "✅ System user ready with complete privileges"
 }
 
 # Download and setup application
@@ -785,24 +801,20 @@ User=$ZAANET_USER
 Group=$ZAANET_USER
 WorkingDirectory=$ZAANET_DIR/app
 ExecStart=/usr/bin/node server.js
-Restart=always
-RestartSec=10
 Environment=NODE_ENV=production
 Environment=ZAANET_DIR=$ZAANET_DIR
-
-# Security settings
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=$ZAANET_DIR
-ReadWritePaths=/var/log
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/$ZAANET_USER
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    # ZaaNet network manager service
+    # ZaaNet network manager service  
     cat > /etc/systemd/system/zaanet-manager.service << EOF
 [Unit]
 Description=ZaaNet Network Manager
