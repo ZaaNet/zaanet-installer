@@ -419,6 +419,7 @@ create_zaanet_scripts() {
 INTERFACE="$WIRELESS_INTERFACE"
 IP_ADDRESS="$PORTAL_IP/24"
 DNS_SERVER="$DNS_SERVER"
+PORTAL_PORT="$PORTAL_PORT"  # Use environment variable
 FIREWALL_SCRIPT="$ZAANET_DIR/scripts/zaanet-firewall.sh"
 LOG_FILE="/var/log/zaanet.log"
 
@@ -669,7 +670,7 @@ setup_http_redirection() {
   iptables -t nat -A PREROUTING -i "\$LAN_IF" -p tcp --dport 80 -j DNAT --to-destination "\$PORTAL_IP:\$PORTAL_PORT"
   
   # Redirect HTTPS traffic (port 443) to HTTP captive portal
-  # Note: This will cause certificate warnings, but that's normal for captive portals
+  # Nhhote: This will cause certificate warnings, but that's normal for captive portals
   iptables -t nat -A PREROUTING -i "\$LAN_IF" -p tcp --dport 443 -j DNAT --to-destination "\$PORTAL_IP:\$PORTAL_PORT"
   
   # Allow traffic TO the captive portal from LAN clients
