@@ -587,6 +587,7 @@ set -euo pipefail
 LAN_IF="$WIRELESS_INTERFACE"
 WAN_IF="$ETHERNET_INTERFACE"
 PORTAL_IP="$PORTAL_IP"
+PORTAL_PORT="$PORTAL_PORT"  # Use environment variable
 LAN_SUBNET="$PORTAL_IP/24"
 
 LOG_FILE="/var/log/zaanet-firewall.log"
@@ -690,20 +691,18 @@ setup_basic_rules() {
   iptables -A INPUT -i lo -j ACCEPT
   iptables -A OUTPUT -o lo -j ACCEPT
   
-  # Established connections
+  # Portal access (before ESTABLISHED rule)
+  iptables -A FORWARD -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
+  iptables -A INPUT -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
+  
+  # ESTABLISHED connections (AFTER auth chains are created)
   iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
   
-  # Portal access
-  iptables -A FORWARD -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
-  iptables -A INPUT -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
-  
-  # DNS
-  iptables -A INPUT -i "\$LAN_IF" -p udp --dport 53 -j ACCEPT
-  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 53 -j ACCEPT
-  
-  # Web portal
-  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 80 -j ACCEPT
-  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 443 -j ACCEPT
+  # DNS, DHCP, etc.
+  iptables -A INPUT -i "$LAN_IF" -p udp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 80 -j ACCEPT
+  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 443 -j ACCEPT
   
   log "✅ Basic rules configured"
 }
@@ -789,10 +788,9 @@ test_configuration() {
 main() {
   log "🚀 Starting ZaaNet firewall setup..."
   
-  # Backup existing rules
-  local backup_file="/tmp/iptables-backup-\$(date +%Y%m%d-%H%M%S).rules"
-  iptables-save > "\$backup_file" 2>/dev/null || true
-  log "💾 Existing rules backed up to \$backup_file"
+  local backup_file="/tmp/iptables-backup-$(date +%Y%m%d-%H%M%S).rules"
+  iptables-save > "$backup_file" 2>/dev/null || true
+  log "💾 Existing rules backed up to $backup_file"
 
   validate_environment
   enable_ip_forwarding
@@ -800,9 +798,12 @@ main() {
   setup_policies
   setup_nat
   setup_http_redirection
-  setup_basic_rules
-  create_authenticated_chain
+  
+  # Create chains BEFORE basic rules
   create_blocked_chain
+  create_authenticated_chain
+  setup_basic_rules  # This adds ESTABLISHED rule AFTER auth chains
+  
   test_configuration
   show_summary
 }
