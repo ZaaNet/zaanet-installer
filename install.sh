@@ -26,7 +26,7 @@ DHCP_START="192.168.100.100"
 DHCP_END="192.168.100.200"
 DNS_SERVER="8.8.8.8"
 PORTAL_DOMAIN="portal.zaanet.xyz"
-PORTAL_PORT="3000"
+PORTAL_PORT="80"
 MAIN_SERVER_URL="https://www.zaanet.xyz"
 
 show_banner() {
