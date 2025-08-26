@@ -766,6 +766,7 @@ test_configuration() {
 
 main() {
   log "🚀 Starting ZaaNet FILTER Method Setup..."
+
   local backup_file="/tmp/iptables-backup-$(date +%Y%m%d-%H%M%S).rules"
   iptables-save > "$backup_file" 2>/dev/null || true
   log "💾 Existing rules backed up to $backup_file"
