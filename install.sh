@@ -692,17 +692,17 @@ setup_basic_rules() {
   iptables -A OUTPUT -o lo -j ACCEPT
   
   # Portal access (before ESTABLISHED rule)
-  iptables -A FORWARD -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
+  iptables -A FORWARD -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
   
   # ESTABLISHED connections (AFTER auth chains are created)
   iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
   
   # DNS, DHCP, etc.
-  iptables -A INPUT -i "$LAN_IF" -p udp --dport 53 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 53 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 80 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 443 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p udp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 80 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 443 -j ACCEPT
   
   log "✅ Basic rules configured"
 }
