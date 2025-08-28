@@ -320,7 +320,7 @@ setup_application() {
     
     # Setup environment variables
     log "Configuring environment..."
-    cat <<EOF > .env
+   cat <<EOF > .env
 # ZaaNet Auto-Configuration
 PORTAL_IP=$PORTAL_IP
 PORTAL_PORT=$PORTAL_PORT
@@ -344,8 +344,8 @@ NODE_ENV=production
 
 # Auto-installer metadata
 INSTALLER_VERSION=2.0.0
-INSTALL_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-DEVICE_MODEL=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0' || echo "Unknown")
+INSTALL_DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+DEVICE_MODEL="$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0' || echo "Unknown")"
 EOF
     
     # Application is pre-built, no build step needed
