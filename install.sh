@@ -575,7 +575,7 @@ case "\$1" in
 esac
 EOF
 
-    # Create the firewall script
+# Create the firewall script
     cat > "$ZAANET_DIR/scripts/zaanet-firewall.sh" << EOF
 #!/bin/bash
 
