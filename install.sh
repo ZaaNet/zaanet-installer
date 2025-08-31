@@ -576,7 +576,7 @@ esac
 EOF
 
 # Create the firewall script
-    cat > "$ZAANET_DIR/scripts/zaanet-firewall.sh" << EOF
+cat > "$ZAANET_DIR/scripts/zaanet-firewall.sh" << EOF
 #!/bin/bash
 
 # ZaaNet Captive Portal - FILTER Method Setup
@@ -588,39 +588,39 @@ set -euo pipefail
 LAN_IF="$WIRELESS_INTERFACE"
 WAN_IF="$ETHERNET_INTERFACE"
 PORTAL_IP="$PORTAL_IP"
-LAN_SUBNET="$LAN_SUBNET"
+LAN_SUBNET="192.168.100.0/24"
 
 LOG_FILE="/var/log/zaanet-firewall.log"
 
 log() {
-  local message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-  echo "$message"
-  echo "$message" >> "$LOG_FILE" 2>/dev/null || true
+  local message="[\$(date '+%Y-%m-%d %H:%M:%S')] \$1"
+  echo "\$message"
+  echo "\$message" >> "\$LOG_FILE" 2>/dev/null || true
 }
 
 # Validate environment
 validate_environment() {
-  if [[ $EUID -ne 0 ]]; then
+  if [[ \$EUID -ne 0 ]]; then
     log "❌ This script must be run as root"
     exit 1
   fi
 
   for tool in iptables ip; do
-    if ! command -v "$tool" >/dev/null 2>&1; then
-      log "❌ Required tool not found: $tool"
+    if ! command -v "\$tool" >/dev/null 2>&1; then
+      log "❌ Required tool not found: \$tool"
       exit 1
     fi
   done
 
-  if ! ip link show "$LAN_IF" >/dev/null 2>&1; then
-    log "❌ LAN interface $LAN_IF not found"
-    ip link show | grep -E "^[0-9]+:" | awk '{print $2}' | sed 's/:$//'
+  if ! ip link show "\$LAN_IF" >/dev/null 2>&1; then
+    log "❌ LAN interface \$LAN_IF not found"
+    ip link show | grep -E "^[0-9]+:" | awk '{print \$2}' | sed 's/:\$//'
     exit 1
   fi
 
-  if ! ip link show "$WAN_IF" >/dev/null 2>&1; then
-    log "❌ WAN interface $WAN_IF not found"
-    ip link show | grep -E "^[0-9]+:" | awk '{print $2}' | sed 's/:$//'
+  if ! ip link show "\$WAN_IF" >/dev/null 2>&1; then
+    log "❌ WAN interface \$WAN_IF not found"
+    ip link show | grep -E "^[0-9]+:" | awk '{print \$2}' | sed 's/:\$//'
     exit 1
   fi
 
@@ -657,7 +657,7 @@ setup_policies() {
 
 setup_nat() {
   log "🌐 Setting up NAT for internet sharing..."
-  iptables -t nat -A POSTROUTING -o "$WAN_IF" -j MASQUERADE
+  iptables -t nat -A POSTROUTING -o "\$WAN_IF" -j MASQUERADE
   log "✅ NAT configured for internet sharing"
 }
 
@@ -666,12 +666,12 @@ setup_basic_rules() {
   iptables -A INPUT -i lo -j ACCEPT
   iptables -A OUTPUT -o lo -j ACCEPT
   iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-  iptables -A FORWARD -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p udp --dport 53 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 53 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 80 -j ACCEPT
-  iptables -A INPUT -i "$LAN_IF" -p tcp --dport 443 -j ACCEPT
+  iptables -A FORWARD -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -d "\$PORTAL_IP" -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p udp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 53 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 80 -j ACCEPT
+  iptables -A INPUT -i "\$LAN_IF" -p tcp --dport 443 -j ACCEPT
   log "✅ Basic connectivity rules configured"
 }
 
@@ -681,8 +681,8 @@ create_authenticated_chain() {
   iptables -N ZAANET_AUTH_USERS 2>/dev/null || echo "ZAANET_AUTH_USERS chain already exists"
 
   # Avoid duplicate insertion
-  if ! iptables -C FORWARD -i "$LAN_IF" -j ZAANET_AUTH_USERS 2>/dev/null; then
-    iptables -I FORWARD 2 -i "$LAN_IF" -j ZAANET_AUTH_USERS
+  if ! iptables -C FORWARD -i "\$LAN_IF" -j ZAANET_AUTH_USERS 2>/dev/null; then
+    iptables -I FORWARD 2 -i "\$LAN_IF" -j ZAANET_AUTH_USERS
     log "✅ ZAANET_AUTH_USERS chain linked to FORWARD"
   else
     log "ℹ️ ZAANET_AUTH_USERS already linked to FORWARD"
@@ -706,8 +706,8 @@ create_blocked_chain() {
 restore_authenticated_ips() {
   log "🔄 Restoring authenticated IPs from database..."
   local restore_script="/opt/zaanet/scripts/restore_active_ips.sh"
-  if [[ -x "$restore_script" ]]; then
-    bash "$restore_script" && log "✅ Active IPs restored" || log "⚠️ Failed to restore active IPs"
+  if [[ -x "\$restore_script" ]]; then
+    bash "\$restore_script" && log "✅ Active IPs restored" || log "⚠️ Failed to restore active IPs"
   else
     log "ℹ️ No restore script found, starting with clean authenticated users list"
   fi
@@ -716,11 +716,11 @@ restore_authenticated_ips() {
 show_summary() {
   log "📋 FILTER Method Configuration Summary:"
   local nat_rules
-  nat_rules=$(iptables -t nat -L POSTROUTING -n --line-numbers | tail -n +3 | wc -l)
+  nat_rules=\$(iptables -t nat -L POSTROUTING -n --line-numbers | tail -n +3 | wc -l)
   local forward_rules
-  forward_rules=$(iptables -L FORWARD -n --line-numbers | tail -n +3 | wc -l)
+  forward_rules=\$(iptables -L FORWARD -n --line-numbers | tail -n +3 | wc -l)
   local auth_rules
-  auth_rules=$(iptables -L ZAANET_AUTH_USERS -n --line-numbers 2>/dev/null | tail -n +3 | wc -l)
+  auth_rules=\$(iptables -L ZAANET_AUTH_USERS -n --line-numbers 2>/dev/null | tail -n +3 | wc -l)
 
   echo "
   ╔══════════════════════════════════════════════════════════════╗
@@ -730,12 +730,12 @@ show_summary() {
   ║ Default Policy: FORWARD=DROP (blocks internet access)       ║
   ║ Authenticated Users: Added to ZAANET_AUTH_USERS chain       ║
   ║                                                              ║
-  ║ NAT Rules: $nat_rules (internet sharing)                              ║
-  ║ FORWARD Rules: $forward_rules (portal access + established)           ║
-  ║ Authenticated IPs: $auth_rules                                       ║
+  ║ NAT Rules: \$nat_rules (internet sharing)                              ║
+  ║ FORWARD Rules: \$forward_rules (portal access + established)           ║
+  ║ Authenticated IPs: \$auth_rules                                       ║
   ╚══════════════════════════════════════════════════════════════╝
   "
-  log "📊 Configuration: NAT($nat_rules) FORWARD($forward_rules) AUTH($auth_rules)"
+  log "📊 Configuration: NAT(\$nat_rules) FORWARD(\$forward_rules) AUTH(\$auth_rules)"
 }
 
 test_configuration() {
@@ -754,11 +754,11 @@ test_configuration() {
   fi
 
   local policy
-  policy=$(iptables -L FORWARD -n | head -1 | grep -o "policy [A-Z]*" | cut -d' ' -f2)
-  if [[ "$policy" == "DROP" ]]; then
+  policy=\$(iptables -L FORWARD -n | head -1 | grep -o "policy [A-Z]*" | cut -d' ' -f2)
+  if [[ "\$policy" == "DROP" ]]; then
     log "✅ FORWARD policy is DROP (correct for captive portal)"
   else
-    log "⚠️ FORWARD policy is $policy (should be DROP)"
+    log "⚠️ FORWARD policy is \$policy (should be DROP)"
   fi
 
   log "✅ Configuration test completed"
@@ -767,9 +767,9 @@ test_configuration() {
 main() {
   log "🚀 Starting ZaaNet FILTER Method Setup..."
 
-  local backup_file="/tmp/iptables-backup-$(date +%Y%m%d-%H%M%S).rules"
-  iptables-save > "$backup_file" 2>/dev/null || true
-  log "💾 Existing rules backed up to $backup_file"
+  local backup_file="/tmp/iptables-backup-\$(date +%Y%m%d-%H%M%S).rules"
+  iptables-save > "\$backup_file" 2>/dev/null || true
+  log "💾 Existing rules backed up to \$backup_file"
 
   validate_environment
   enable_ip_forwarding
@@ -802,7 +802,7 @@ main() {
 }
 
 trap 'log "❌ Script interrupted"; exit 130' INT TERM
-main "$@"
+main "\$@"
 EOF
 
     # Make scripts executable
