@@ -384,7 +384,6 @@ EOF
 # ZaaNet Dnsmasq Configuration - Auto-generated
 interface=$WIRELESS_INTERFACE
 dhcp-range=$DHCP_START,$DHCP_END,12h
-address=/#/$PORTAL_IP
 domain-needed
 no-dhcp-interface=$ETHERNET_INTERFACE
 bogus-priv
