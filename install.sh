@@ -815,8 +815,20 @@ EOF
 create_systemd_services() {
     echo "🔧 Creating systemd services..."
     
-    # ZaaNet application service
-    cat > /etc/systemd/system/zaanet.service << EOF
+    # Debug information
+    echo "DEBUG: Creating service for user: $ZAANET_USER"
+    echo "DEBUG: Using directory: $ZAANET_DIR"
+    echo "DEBUG: Scripts directory: $ZAANET_DIR/scripts"
+    
+    # Test write permissions
+    if ! touch /etc/systemd/system/zaanet.service.test 2>/dev/null; then
+        error "❌ Cannot write to /etc/systemd/system/ - check permissions"
+    fi
+    rm -f /etc/systemd/system/zaanet.service.test
+    
+    # Create ZaaNet application service with error checking
+    echo "Creating zaanet.service..."
+    if ! cat > /etc/systemd/system/zaanet.service << EOF
 [Unit]
 Description=ZaaNet Captive Portal Application
 After=network.target zaanet-manager.service
@@ -841,9 +853,21 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    # ZaaNet network manager service  
-    cat > /etc/systemd/system/zaanet-manager.service << EOF
+    then
+        error "❌ Failed to create zaanet.service file"
+    fi
+    
+    # Verify file was created and has content
+    if [[ ! -s /etc/systemd/system/zaanet.service ]]; then
+        error "❌ zaanet.service file is empty"
+    fi
+    
+    echo "✅ zaanet.service created successfully"
+    echo "File size: $(wc -l < /etc/systemd/system/zaanet.service) lines"
+    
+    # Create ZaaNet network manager service with error checking
+    echo "Creating zaanet-manager.service..."
+    if ! cat > /etc/systemd/system/zaanet-manager.service << EOF
 [Unit]
 Description=ZaaNet Network Manager
 After=network.target
@@ -860,9 +884,40 @@ TimeoutStopSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
+    then
+        error "❌ Failed to create zaanet-manager.service file"
+    fi
     
-    systemctl daemon-reload
-    success "✅ Systemd services created"
+    # Verify file was created and has content
+    if [[ ! -s /etc/systemd/system/zaanet-manager.service ]]; then
+        error "❌ zaanet-manager.service file is empty"
+    fi
+    
+    echo "✅ zaanet-manager.service created successfully"
+    echo "File size: $(wc -l < /etc/systemd/system/zaanet-manager.service) lines"
+    
+    # Verify the switcher script exists and is executable
+    if [[ ! -x "$ZAANET_DIR/scripts/zaanet-switcher.sh" ]]; then
+        warning "⚠️ zaanet-switcher.sh not found or not executable"
+        echo "Attempting to fix permissions..."
+        chmod +x "$ZAANET_DIR/scripts/zaanet-switcher.sh" 2>/dev/null || true
+    fi
+    
+    # Reload systemd
+    if ! systemctl daemon-reload; then
+        error "❌ Failed to reload systemd daemon"
+    fi
+    
+    # Test that services can be loaded
+    if ! systemctl show zaanet.service >/dev/null 2>&1; then
+        error "❌ zaanet.service failed to load into systemd"
+    fi
+    
+    if ! systemctl show zaanet-manager.service >/dev/null 2>&1; then
+        error "❌ zaanet-manager.service failed to load into systemd"
+    fi
+    
+    success "✅ Systemd services created and validated"
 }
 
 # Create user-friendly management commands
