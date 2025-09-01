@@ -31,7 +31,7 @@ MAIN_SERVER_URL="https://www.zaanet.xyz"
 
 show_banner() {
     clear
-    echo -e "${BLUE}"
+    echo -e "${CYAN}"
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════╗
 ║  ███████╗ █████╗  █████╗ ███╗   ██╗███████╗████████╗        ║
