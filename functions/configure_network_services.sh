@@ -49,8 +49,8 @@ ssid=$WIFI_SSID
 
 # Basic Wi-Fi settings
 hw_mode=g
-channel=7
-wmm_enabled=0
+channel=6
+wmm_enabled=1
 macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
@@ -60,13 +60,9 @@ wpa=0
 
 # Country code and regulatory
 country_code=GH
-ieee80211n=1
-ieee80211d=1
 
-# Performance settings
-beacon_int=100
-dtim_period=2
-max_num_sta=50
+# Minimal settings for maximum compatibility
+max_num_sta=30
 
 # Logging
 logger_syslog=-1
