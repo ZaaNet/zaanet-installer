@@ -121,8 +121,36 @@ set_permissions() {
     fi
     
     # =============================================================================
-    # VERIFY PERMISSIONS
+    # SET SYSTEM PERMISSIONS FOR ZAANET OPERATIONS
     # =============================================================================
+    
+    configure_system_permissions() {
+        log "Configuring system permissions for ZaaNet operations..."
+        
+        # Add zaanet user to sudoers for iptables access
+        local sudoers_file="/etc/sudoers.d/zaanet"
+        cat > "$sudoers_file" <<EOF
+# ZaaNet user permissions for firewall management
+# Allow zaanet user to run iptables without password
+zaanet ALL=(ALL) NOPASSWD: /sbin/iptables, /usr/sbin/iptables, /bin/iptables, /usr/bin/iptables
+zaanet ALL=(ALL) NOPASSWD: /sbin/ip6tables, /usr/sbin/ip6tables, /bin/ip6tables, /usr/bin/ip6tables
+EOF
+        chmod 440 "$sudoers_file"
+        
+        # Give Node.js capability to bind to privileged ports
+        if command -v setcap >/dev/null 2>&1; then
+            setcap 'cap_net_bind_service=+ep' /usr/bin/node
+            log "✓ Node.js granted capability to bind to privileged ports"
+        else
+            warning "setcap not available - Node.js may not be able to bind to port 80"
+        fi
+        
+        # Add zaanet user to network-related groups
+        usermod -a -G netdev "$ZAANET_USER" 2>/dev/null || true
+        usermod -a -G dialout "$ZAANET_USER" 2>/dev/null || true
+        
+        success "✓ System permissions configured"
+    }
     
     verify_permissions() {
         log "Verifying permissions..."
@@ -155,6 +183,11 @@ set_permissions() {
         fi
     }
     
+    # =============================================================================
+    # RUN PERMISSION CONFIGURATION
+    # =============================================================================
+    
+    configure_system_permissions
     verify_permissions
     
     success "✅ Permissions configured successfully"
