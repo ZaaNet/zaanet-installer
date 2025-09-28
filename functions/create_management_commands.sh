@@ -1,8 +1,12 @@
+#!/bin/bash
+# functions/create_management_commands.sh
+# Create user-friendly management commands
+
 create_management_commands() {
-    echo "⚙️ Creating management commands..."
+    log "⚙️ Creating management commands..."
     
-    # Main zaanet command
-    cat > /usr/local/bin/zaanet << EOF
+    # Create main zaanet command
+    cat > /usr/local/bin/zaanet <<EOF
 #!/bin/bash
 # ZaaNet Management Command - Auto-generated
 
@@ -20,7 +24,7 @@ case "\$1" in
         sudo systemctl start zaanet-manager
         sudo systemctl start zaanet
         echo ""
-        echo "✅ ZaaNet started successfully!"
+        echo "ZaaNet started successfully!"
         echo ""
         echo "📱 Next Steps:"
         echo "   1. Connect to Wi-Fi: \$WIFI_SSID"
@@ -32,7 +36,7 @@ case "\$1" in
         echo "🛑 Stopping ZaaNet..."
         sudo systemctl stop zaanet
         sudo systemctl stop zaanet-manager
-        echo "✅ ZaaNet stopped - normal internet mode restored"
+        echo "ZaaNet stopped - normal internet mode restored"
         ;;
     status)
         echo "📊 ZaaNet Status:"
@@ -44,13 +48,13 @@ case "\$1" in
         echo ""
         echo "Application Services:"
         if systemctl is-active --quiet zaanet; then
-            echo "  📱 Portal App: ✅ Running"
+            echo "  📱 Portal App: Running"
         else
             echo "  📱 Portal App: ❌ Stopped"
         fi
         
         if systemctl is-active --quiet zaanet-manager; then
-            echo "  🌐 Network: ✅ Active (Captive Portal Mode)"
+            echo "  🌐 Network: Active (Captive Portal Mode)"
         else
             echo "  🌐 Network: ❌ Inactive (Normal Internet Mode)"
         fi
@@ -59,19 +63,19 @@ case "\$1" in
         echo "🔄 Restarting ZaaNet..."
         sudo systemctl restart zaanet-manager
         sudo systemctl restart zaanet
-        echo "✅ ZaaNet restarted successfully!"
+        echo "ZaaNet restarted successfully!"
         ;;
     enable)
         echo "⚙️ Enabling auto-start on boot..."
         sudo systemctl enable zaanet-manager
         sudo systemctl enable zaanet
-        echo "✅ ZaaNet will now start automatically on boot"
+        echo "ZaaNet will now start automatically on boot"
         ;;
     disable)
         echo "⚙️ Disabling auto-start..."
         sudo systemctl disable zaanet-manager
         sudo systemctl disable zaanet
-        echo "✅ Auto-start disabled"
+        echo "Auto-start disabled"
         ;;
     logs)
         echo "📋 ZaaNet Logs (Press Ctrl+C to exit):"
@@ -86,9 +90,9 @@ case "\$1" in
                 ;;
             allow)
                 if [[ -n "\$3" ]]; then
-                    echo "✅ Granting internet access to IP: \$3"
+                    echo "Granting internet access to IP: \$3"
                     sudo iptables -A ZAANET_AUTH_USERS -s "\$3" -j ACCEPT
-                    echo "✅ Done! Device \$3 now has internet access"
+                    echo "Done! Device \$3 now has internet access"
                 else
                     echo "❌ Usage: zaanet firewall allow <ip_address>"
                     echo "💡 Example: zaanet firewall allow 192.168.100.105"
@@ -98,7 +102,7 @@ case "\$1" in
                 if [[ -n "\$3" ]]; then
                     echo "🚫 Removing internet access for IP: \$3"
                     sudo iptables -D ZAANET_AUTH_USERS -s "\$3" -j ACCEPT 2>/dev/null || echo "IP not found in authenticated list"
-                    echo "✅ Done! Device \$3 internet access revoked"
+                    echo "Done! Device \$3 internet access revoked"
                 else
                     echo "❌ Usage: zaanet firewall block <ip_address>"
                     echo "💡 Example: zaanet firewall block 192.168.100.105"
@@ -149,17 +153,15 @@ case "\$1" in
         npm install
         echo "🔄 Restarting services..."
         sudo systemctl restart zaanet
-        echo "✅ ZaaNet updated successfully!"
+        echo "ZaaNet updated successfully!"
         ;;
     *)
-        echo -e "\e[36m"
         cat << 'BANNER'
 ╔══════════════════════════════════════════════════════════════╗
 ║                    ZaaNet Management                         ║
 ║                   Captive Portal System                     ║
 ╚══════════════════════════════════════════════════════════════╝
 BANNER
-        echo -e "\e[0m"
         echo ""
         echo "🚀 Control Commands:"
         echo "  zaanet start      - Start captive portal mode"
@@ -190,6 +192,13 @@ BANNER
 esac
 EOF
     
+    # Make command executable
     chmod +x /usr/local/bin/zaanet
-    success "✅ Management commands created"
+    
+    # Verify command was created
+    if [[ ! -f /usr/local/bin/zaanet ]]; then
+        error "Failed to create zaanet command"
+    fi
+    
+    success "✅ Management commands created successfully"
 }

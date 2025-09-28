@@ -1,5 +1,11 @@
-create_systemd_services() {       
-    # Test if variables are empty
+#!/bin/bash
+# functions/create_systemd_services.sh
+# Create systemd service files for ZaaNet
+
+create_systemd_services() {
+    log "🔧 Creating systemd services..."
+    
+    # Validate environment
     if [[ -z "$ZAANET_USER" ]]; then
         error "ZAANET_USER is empty!"
     fi
@@ -14,9 +20,11 @@ create_systemd_services() {
     fi
     rm -f /etc/systemd/system/zaanet.service.test
     
-    # Create ZaaNet application service - use a different approach    
-    # Create the file content in a variable first
-    local service_content="[Unit]
+    # Create ZaaNet application service
+    log "Creating zaanet.service..."
+    
+    cat > /etc/systemd/system/zaanet.service <<EOF
+[Unit]
 Description=ZaaNet Captive Portal Application
 After=network.target zaanet-manager.service
 Wants=network-online.target
@@ -31,38 +39,26 @@ ExecStart=/usr/bin/node server.js
 Environment=NODE_ENV=production
 Environment=ZAANET_DIR=$ZAANET_DIR
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
-Environment=HOME=/home/$ZAANET_USER
+Environment=HOME=$ZAANET_DIR
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target"
+WantedBy=multi-user.target
+EOF
     
-    # Write content to file using echo
-    echo "$service_content" > /etc/systemd/system/zaanet.service
-    
-    # Verify file was created and has content
-    if [[ ! -f /etc/systemd/system/zaanet.service ]]; then
-        error "zaanet.service file was not created"
+    # Verify zaanet.service
+    if [[ ! -f /etc/systemd/system/zaanet.service || ! -s /etc/systemd/system/zaanet.service ]]; then
+        error "zaanet.service file was not created properly"
     fi
     
-    if [[ ! -s /etc/systemd/system/zaanet.service ]]; then
-        error "zaanet.service file is empty"
-        echo "Trying alternative approach with printf..."
-        printf '%s\n' "$service_content" > /etc/systemd/system/zaanet.service
-    fi
+    # Create ZaaNet network manager service
+    log "Creating zaanet-manager.service..."
     
-    echo "zaanet.service created successfully"
-    echo "File content:"
-    cat /etc/systemd/system/zaanet.service
-    echo "--- End of file ---"
-    
-    # Create ZaaNet network manager service (using the same approach)
-    echo "Creating zaanet-manager.service..."
-    
-    local manager_content="[Unit]
+    cat > /etc/systemd/system/zaanet-manager.service <<EOF
+[Unit]
 Description=ZaaNet Network Manager
 After=network.target
 Before=zaanet.service
@@ -76,19 +72,14 @@ TimeoutStartSec=120
 TimeoutStopSec=60
 
 [Install]
-WantedBy=multi-user.target"
+WantedBy=multi-user.target
+EOF
     
-    echo "$manager_content" > /etc/systemd/system/zaanet-manager.service
-    
-    # Verify file was created and has content
-    if [[ ! -f /etc/systemd/system/zaanet-manager.service ]]; then
-        error "zaanet-manager.service file was not created"
+    # Verify zaanet-manager.service
+    if [[ ! -f /etc/systemd/system/zaanet-manager.service || ! -s /etc/systemd/system/zaanet-manager.service ]]; then
+        error "zaanet-manager.service file was not created properly"
     fi
     
-    if [[ ! -s /etc/systemd/system/zaanet-manager.service ]]; then
-        error "zaanet-manager.service file is empty"
-    fi
-        
     # Verify the switcher script exists
     if [[ ! -f "$ZAANET_DIR/scripts/zaanet-switcher.sh" ]]; then
         warning "⚠️ zaanet-switcher.sh not found at $ZAANET_DIR/scripts/zaanet-switcher.sh"
@@ -101,5 +92,5 @@ WantedBy=multi-user.target"
         error "Failed to reload systemd daemon"
     fi
     
-    success "Systemd services created and loaded"
+    success "✅ Systemd services created successfully"
 }

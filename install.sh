@@ -37,7 +37,7 @@ FUNCTIONS_DIR="${SCRIPT_DIR}/functions"
 source_functions() {
     local functions_to_load=(
         "auto_detect_interfaces.sh"
-        "check_raspberry_pi.sh"
+        "check_device_compatibility.sh"
         "configure_auto_start.sh"
         "configure_network_services.sh"
         "create_management_commands.sh"
@@ -46,7 +46,6 @@ source_functions() {
         "create_zaanet_scripts.sh"
         "get_essential_config.sh"
         "install_dependencies.sh"
-        "run_tests.sh"
         "set_permissions.sh"
         "setup_application.sh"
         "show_completion.sh"
@@ -127,7 +126,7 @@ verify_function_files() {
     
     local required_functions=(
         "auto_detect_interfaces.sh"
-        "check_raspberry_pi.sh"
+        "check_device_compatibility.sh"
         "configure_auto_start.sh"
         "configure_network_services.sh"
         "create_management_commands.sh"
@@ -136,7 +135,6 @@ verify_function_files() {
         "create_zaanet_scripts.sh"
         "get_essential_config.sh"
         "install_dependencies.sh"
-        "run_tests.sh"
         "set_permissions.sh"
         "setup_application.sh"
         "show_completion.sh"
@@ -167,7 +165,7 @@ main() {
     source_functions
     
     # Now call the functions (these are defined in the sourced files)
-    check_raspberry_pi
+    check_device_compatibility
     auto_detect_interfaces
     get_essential_config
     
@@ -184,7 +182,6 @@ main() {
     create_management_commands
     set_permissions
     configure_auto_start
-    run_tests
     
     show_completion
     
