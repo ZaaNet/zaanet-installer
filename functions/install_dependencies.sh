@@ -41,9 +41,12 @@ install_dependencies() {
                     build-essential \
                     hostapd dnsmasq \
                     iptables iptables-persistent \
-                    iw wireless-tools \
+                    iw \
                     systemd net-tools \
                     jq
+                
+                # Try to install wireless-tools, but don't fail if unavailable
+                apt-get install -y wireless-tools 2>/dev/null || log "wireless-tools not available, using iw instead"
                 ;;
             "yum")
                 yum install -y \
