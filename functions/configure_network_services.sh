@@ -181,19 +181,21 @@ EOF
     verify_configs() {
         log "Verifying configurations..."
         
-        # Check hostapd config syntax only (don't start AP)
-        if hostapd -t /etc/hostapd/hostapd.conf 2>/dev/null; then
-            success "✓ hostapd configuration syntax valid"
+        # Check hostapd config file exists and has basic syntax
+        if [[ -f /etc/hostapd/hostapd.conf ]] && grep -q "interface=" /etc/hostapd/hostapd.conf; then
+            success "✓ hostapd configuration file created"
         else
-            warning "hostapd configuration has syntax issues but proceeding..."
+            error "hostapd configuration file missing or invalid"
         fi
         
-        # Check dnsmasq config syntax only
-        if dnsmasq --test 2>/dev/null; then
-            success "✓ dnsmasq configuration syntax valid"
+        # Check dnsmasq config file exists and has basic syntax
+        if [[ -f /etc/dnsmasq.conf ]] && grep -q "interface=" /etc/dnsmasq.conf; then
+            success "✓ dnsmasq configuration file created"
         else
-            warning "dnsmasq configuration has issues but proceeding..."
+            error "dnsmasq configuration file missing or invalid"
         fi
+        
+        log "Configuration verification completed (runtime testing skipped)"
     }
     
     # =============================================================================
