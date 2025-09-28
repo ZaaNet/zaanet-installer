@@ -33,6 +33,131 @@ MAIN_SERVER_URL="https://www.zaanet.xyz"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FUNCTIONS_DIR="${SCRIPT_DIR}/functions"
 
+# Download functions if they don't exist (for web installs)
+download_functions() {
+    if [[ ! -d "$FUNCTIONS_DIR" ]]; then
+        log "Functions directory not found - downloading from GitHub..."
+        
+        local temp_dir="/tmp/zaanet-installer-$"
+        mkdir -p "$temp_dir"
+        
+        # Try git first (more reliable)
+        if command -v git >/dev/null 2>&1; then
+            log "Using git to download functions..."
+            if git clone --depth 1 https://github.com/ZaaNet/zaanet-installer.git "$temp_dir"; then
+                if [[ -d "$temp_dir/functions" ]]; then
+                    cp -r "$temp_dir/functions" "$SCRIPT_DIR/"
+                    FUNCTIONS_DIR="${SCRIPT_DIR}/functions"
+                    log "Functions downloaded successfully via git"
+                    rm -rf "$temp_dir"
+                    return 0
+                fi
+            fi
+        fi
+        
+        # Fallback to wget + unzip
+        log "Git failed or unavailable, trying wget..."
+        cd "$temp_dir"
+        
+        if wget -q "https://github.com/ZaaNet/zaanet-installer/archive/main.zip" -O repo.zip 2>/dev/null; then
+            if command -v unzip >/dev/null 2>&1; then
+                if unzip -q repo.zip; then
+                    local extracted_dir=$(find . -maxdepth 1 -name "zaanet-installer-*" -type d | head -1)
+                    if [[ -n "$extracted_dir" && -d "$extracted_dir/functions" ]]; then
+                        cp -r "$extracted_dir/functions" "$SCRIPT_DIR/"
+                        FUNCTIONS_DIR="${SCRIPT_DIR}/functions"
+                        log "Functions downloaded successfully via wget"
+                        rm -rf "$temp_dir"
+                        return 0
+                    fi
+                fi
+            else
+                error "unzip command not found. Please install unzip or git."
+            fi
+        fi
+        
+        # Final fallback - try individual file downloads
+        log "Archive download failed, trying individual file downloads..."
+        mkdir -p "$FUNCTIONS_DIR"
+        
+        local functions_to_download=(
+            "auto_detect_interfaces.sh"
+            "check_device_compatibility.sh"
+            "configure_auto_start.sh"
+            "configure_network_services.sh"
+            "create_management_commands.sh"
+            "create_system_user.sh"
+            "create_systemd_services.sh"
+            "create_zaanet_scripts.sh"
+            "get_essential_config.sh"
+            "install_dependencies.sh"
+            "set_permissions.sh"
+            "setup_application.sh"
+            "show_completion.sh"
+        )
+        
+        local downloaded_count=0
+        for func_file in "${functions_to_download[@]}"; do
+            local url="https://raw.githubusercontent.com/ZaaNet/zaanet-installer/main/functions/${func_file}"
+            if wget -q "$url" -O "${FUNCTIONS_DIR}/${func_file}"; then
+                downloaded_count=$((downloaded_count + 1))
+            fi
+        done
+        
+        if [[ $downloaded_count -eq ${#functions_to_download[@]} ]]; then
+            log "All functions downloaded individually"
+            rm -rf "$temp_dir"
+            return 0
+        fi
+        
+        # If we get here, all methods failed
+        rm -rf "$temp_dir" "$FUNCTIONS_DIR"
+        error "Failed to download ZaaNet functions. Please check your internet connection or try: git clone https://github.com/ZaaNet/zaanet-installer.git && cd zaanet-installer && sudo ./install.sh"
+    fi
+}
+
+# Download functions if they don't exist (for web installs)
+download_functions() {
+    if [[ ! -d "$FUNCTIONS_DIR" ]]; then
+        log "Functions directory not found - downloading from GitHub..."
+        
+        local temp_dir="/tmp/zaanet-installer-$"
+        mkdir -p "$temp_dir"
+        
+        # Download the entire repository
+        if command -v git >/dev/null; then
+            git clone --depth 1 https://github.com/yourusername/zaanet-installer.git "$temp_dir" || {
+                error "Failed to download ZaaNet installer. Check internet connection."
+            }
+        else
+            # Fallback to wget if git not available
+            cd "$temp_dir"
+            wget -q "https://github.com/yourusername/zaanet-installer/archive/main.zip" -O repo.zip || {
+                error "Failed to download ZaaNet installer. Check internet connection."
+            }
+            
+            if command -v unzip >/dev/null; then
+                unzip -q repo.zip
+                mv zaanet-installer-main/* .
+            else
+                error "unzip command not found. Please install unzip or git."
+            fi
+        fi
+        
+        # Copy functions to current directory
+        if [[ -d "$temp_dir/functions" ]]; then
+            cp -r "$temp_dir/functions" "$SCRIPT_DIR/"
+            FUNCTIONS_DIR="${SCRIPT_DIR}/functions"
+            log "Functions downloaded successfully"
+        else
+            error "Functions directory not found in downloaded repository"
+        fi
+        
+        # Cleanup
+        rm -rf "$temp_dir"
+    fi
+}
+
 # Source all function files
 source_functions() {
     local functions_to_load=(
@@ -46,6 +171,7 @@ source_functions() {
         "create_zaanet_scripts.sh"
         "get_essential_config.sh"
         "install_dependencies.sh"
+        "run_tests.sh"
         "set_permissions.sh"
         "setup_application.sh"
         "show_completion.sh"
@@ -135,6 +261,7 @@ verify_function_files() {
         "create_zaanet_scripts.sh"
         "get_essential_config.sh"
         "install_dependencies.sh"
+        "run_tests.sh"
         "set_permissions.sh"
         "setup_application.sh"
         "show_completion.sh"
@@ -160,6 +287,9 @@ main() {
     show_banner
     check_root
     
+    # Download functions if needed (for web installs)
+    download_functions
+    
     # Verify and load all function files
     verify_function_files
     source_functions
@@ -182,6 +312,7 @@ main() {
     create_management_commands
     set_permissions
     configure_auto_start
+    run_tests
     
     show_completion
     
