@@ -1,35 +1,18 @@
 #!/bin/bash
 # functions/install_dependencies.sh
-# Install required packages for ZaaNet
 
 install_dependencies() {
     log "📦 Installing ZaaNet dependencies..."
     
-    # =============================================================================
-    # UPDATE PACKAGE LISTS
-    # =============================================================================
-    
     update_packages() {
         log "Updating package lists..."
         case "$PKG_MANAGER" in
-            "apt")
-                apt-get update -y
-                ;;
-            "yum")
-                yum check-update || true
-                ;;
-            "dnf") 
-                dnf check-update || true
-                ;;
-            "pacman")
-                pacman -Sy --noconfirm
-                ;;
+            "apt") apt-get update -y ;;
+            "yum") yum check-update || true ;;
+            "dnf") dnf check-update || true ;;
+            "pacman") pacman -Sy --noconfirm ;;
         esac
     }
-    
-    # =============================================================================
-    # INSTALL CORE DEPENDENCIES
-    # =============================================================================
     
     install_core_packages() {
         log "Installing core packages..."
@@ -41,12 +24,14 @@ install_dependencies() {
                     build-essential \
                     hostapd dnsmasq \
                     iptables iptables-persistent \
-                    iw \
-                    systemd net-tools \
-                    jq
+                    iw wireless-tools \
+                    systemd net-tools jq \
+                    python3 python3-pip python3-dev
                 
-                # Try to install wireless-tools, but don't fail if unavailable
-                apt-get install -y wireless-tools 2>/dev/null || log "wireless-tools not available, using iw instead"
+                # Try to install libnetfilter-queue-dev
+                apt-get install -y libnetfilter-queue-dev 2>/dev/null || \
+                apt-get install -y libnetfilter-queue1 2>/dev/null || \
+                log "Warning: libnetfilter-queue not found, will try pip installation"
                 ;;
             "yum")
                 yum install -y \
@@ -55,8 +40,9 @@ install_dependencies() {
                     hostapd dnsmasq \
                     iptables iptables-services \
                     iw wireless-tools \
-                    systemd net-tools \
-                    jq
+                    systemd net-tools jq \
+                    python3 python3-pip python3-devel \
+                    libnetfilter_queue-devel
                 ;;
             "dnf")
                 dnf install -y \
@@ -65,30 +51,48 @@ install_dependencies() {
                     hostapd dnsmasq \
                     iptables iptables-services \
                     iw wireless-tools \
-                    systemd net-tools \
-                    jq
+                    systemd net-tools jq \
+                    python3 python3-pip python3-devel \
+                    libnetfilter_queue-devel
                 ;;
             "pacman")
                 pacman -S --noconfirm \
-                    curl wget git unzip \
-                    base-devel \
-                    hostapd dnsmasq \
-                    iptables \
+                    curl wget git unzip base-devel \
+                    hostapd dnsmasq iptables \
                     iw wireless_tools \
-                    systemd net-tools \
-                    jq
+                    systemd net-tools jq \
+                    python python-pip \
+                    libnetfilter_queue
                 ;;
         esac
     }
     
-    # =============================================================================
-    # INSTALL NODE.JS
-    # =============================================================================
+    install_python_packages() {
+        log "Installing Python packages for traffic monitoring..."
+        
+        # Install via pip
+        if pip3 install netfilterqueue scapy 2>/dev/null; then
+            success "✓ Python packages installed via pip"
+        elif pip3 install --break-system-packages netfilterqueue scapy 2>/dev/null; then
+            success "✓ Python packages installed via pip (with override)"
+        else
+            error "Failed to install Python packages"
+            log "Manual fix: sudo apt install libnetfilter-queue-dev && sudo pip3 install --break-system-packages netfilterqueue scapy"
+            exit 1
+        fi
+        
+        # Verify
+        if python3 -c "from netfilterqueue import NetfilterQueue; from scapy.all import IP" 2>/dev/null; then
+            success "✓ Python packages verified"
+        else
+            error "Python package import failed"
+            exit 1
+        fi
+    }
     
     install_nodejs() {
         if command -v node >/dev/null 2>&1; then
-            local node_version=$(node --version)
-            log "Node.js already installed: $node_version"
+            log "Node.js already installed: $(node --version)"
             return 0
         fi
         
@@ -96,12 +100,10 @@ install_dependencies() {
         
         case "$PKG_MANAGER" in
             "apt")
-                # Install NodeSource repository
                 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
                 apt-get install -y nodejs
                 ;;
             "yum"|"dnf")
-                # Install NodeSource repository  
                 curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
                 $PKG_MANAGER install -y nodejs
                 ;;
@@ -110,17 +112,8 @@ install_dependencies() {
                 ;;
         esac
         
-        # Verify installation
-        if command -v node >/dev/null 2>&1; then
-            success "✓ Node.js installed: $(node --version)"
-        else
-            error "Failed to install Node.js"
-        fi
+        command -v node >/dev/null 2>&1 && success "✓ Node.js installed: $(node --version)" || error "Failed to install Node.js"
     }
-    
-    # =============================================================================
-    # INSTALL PM2
-    # =============================================================================
     
     install_pm2() {
         if command -v pm2 >/dev/null 2>&1; then
@@ -128,56 +121,36 @@ install_dependencies() {
             return 0
         fi
         
-        log "Installing PM2 process manager..."
-        
-        if command -v npm >/dev/null 2>&1; then
-            npm install -g pm2
-            
-            # Verify installation
-            if command -v pm2 >/dev/null 2>&1; then
-                success "✓ PM2 installed"
-            else
-                error "Failed to install PM2"
-            fi
-        else
-            error "npm not available - cannot install PM2"
-        fi
+        log "Installing PM2..."
+        npm install -g pm2
+        command -v pm2 >/dev/null 2>&1 && success "✓ PM2 installed" || error "Failed to install PM2"
     }
-    
-    # =============================================================================
-    # VERIFY CRITICAL SERVICES
-    # =============================================================================
     
     verify_services() {
         log "Verifying critical services..."
         
-        local services=("hostapd" "dnsmasq")
-        local missing_services=()
+        local services=("hostapd" "dnsmasq" "python3" "node")
+        local missing=()
         
         for service in "${services[@]}"; do
             if command -v "$service" >/dev/null 2>&1; then
-                success "✓ $service installed"
+                success "✓ $service"
             else
-                missing_services+=("$service")
+                missing+=("$service")
                 error "✗ $service not found"
             fi
         done
         
-        if [[ ${#missing_services[@]} -gt 0 ]]; then
-            error "Missing critical services: ${missing_services[*]}"
-            exit 1
-        fi
+        [[ ${#missing[@]} -eq 0 ]] || { error "Missing: ${missing[*]}"; exit 1; }
     }
     
-    # =============================================================================
-    # RUN INSTALLATION
-    # =============================================================================
-    
+    # Execute
     update_packages
     install_core_packages
-    install_nodejs  
+    install_python_packages
+    install_nodejs
     install_pm2
     verify_services
     
-    success "✅ All dependencies installed successfully"
+    success "✅ All dependencies installed"
 }
