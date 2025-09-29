@@ -194,9 +194,6 @@ EOF
         
         cat > "$ZAANET_DIR/scripts/zaanet-firewall.sh" <<'EOF'
 #!/bin/bash
-# ZaaNet Captive Portal Firewall Setup
-
-set -euo pipefail
 
 # Configuration - Auto-detected values
 LAN_IF="%WIRELESS_INTERFACE%"
@@ -211,7 +208,6 @@ log() {
     echo "$message" >> "$LOG_FILE" 2>/dev/null || true
 }
 
-# Validate environment
 validate_environment() {
     if [[ $EUID -ne 0 ]]; then
         log "This script must be run as root"
@@ -274,9 +270,6 @@ setup_basic_rules() {
     iptables -A INPUT -i lo -j ACCEPT
     iptables -A OUTPUT -o lo -j ACCEPT
     
-    # Allow established connections
-    iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    
     # Allow access to portal
     iptables -A FORWARD -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
     iptables -A INPUT -i "$LAN_IF" -d "$PORTAL_IP" -j ACCEPT
@@ -290,20 +283,18 @@ setup_basic_rules() {
 }
 
 create_auth_chains() {
-    # Create authenticated users chain
+    # Create custom chains
     iptables -N ZAANET_AUTH_USERS 2>/dev/null || log "ZAANET_AUTH_USERS chain exists"
-    
-    # Create blocked users chain
     iptables -N ZAANET_BLOCKED 2>/dev/null || log "ZAANET_BLOCKED chain exists"
     
-    # Link chains to FORWARD
-    if ! iptables -C FORWARD -i "$LAN_IF" -j ZAANET_AUTH_USERS 2>/dev/null; then
-        iptables -I FORWARD 2 -i "$LAN_IF" -j ZAANET_AUTH_USERS
-    fi
+    # Add chains to FORWARD in correct order
+    iptables -I FORWARD 1 -j ZAANET_BLOCKED
+    iptables -I FORWARD 2 -i "$LAN_IF" -j ZAANET_AUTH_USERS
     
-    if ! iptables -C FORWARD -j ZAANET_BLOCKED 2>/dev/null; then
-        iptables -I FORWARD -j ZAANET_BLOCKED
-    fi
+    # Add established connections rule AFTER auth check
+    iptables -I FORWARD 3 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    
+    log "Authentication chains configured with correct rule order"
 }
 
 test_configuration() {
@@ -323,6 +314,13 @@ show_summary() {
     log "  Portal IP: $PORTAL_IP"
     log "  Auth chain: ZAANET_AUTH_USERS"
     log "  Block chain: ZAANET_BLOCKED"
+    log ""
+    log "FORWARD chain order:"
+    log "  1. ZAANET_BLOCKED (blocked IPs)"
+    log "  2. ZAANET_AUTH_USERS (authenticated users)"
+    log "  3. ESTABLISHED connections (only after auth)"
+    log "  4. Portal access rules"
+    log "  5. DROP (default policy)"
 }
 
 main() {
