@@ -146,10 +146,6 @@ bogus-priv
 no-resolv
 server=$DNS_SERVER
 expand-hosts
-domain=$PORTAL_DOMAIN
-
-# Captive portal redirection
-address=/#/$PORTAL_IP
 
 # Common connectivity check domains
 address=/connectivitycheck.gstatic.com/$PORTAL_IP
