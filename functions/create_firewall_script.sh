@@ -168,23 +168,27 @@ create_auth_chains() {
    
     # === FORWARD Chain Structure ===
     
-    # 1. CRITICAL: Allow return traffic FIRST (internet → clients)
-    iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    # 1. CRITICAL: Check authentication FIRST (both directions for counting)
+    # Outbound traffic (uploads): WiFi → Internet
+    iptables -I FORWARD 1 -i "$LAN_IF" -j ZAANET_AUTH_USERS
+    
+    # Inbound traffic (downloads): Internet → WiFi
+    iptables -I FORWARD 1 -o "$LAN_IF" -j ZAANET_AUTH_USERS
    
     # 2. Check if IP is explicitly blocked (only outgoing WiFi traffic)
     iptables -A FORWARD -i "$LAN_IF" -j ZAANET_BLOCKED
    
-    # 3. Check authentication status (only outgoing WiFi traffic)
-    iptables -A FORWARD -i "$LAN_IF" -j ZAANET_AUTH_USERS
+    # 3. Allow return traffic (internet → clients)
+    iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
    
     # 4. Everything else hits DROP (policy)
    
     log "SUCCESS" "Authentication chains configured"
     log "INFO" "  FORWARD rule order:"
-    log "INFO" "    1. ESTABLISHED/RELATED → ACCEPT (return traffic)"
-    log "INFO" "    2. DNS → ACCEPT (all users)"
+    log "INFO" "    1. Check auth outbound (WiFi → Internet)"
+    log "INFO" "    2. Check auth inbound (Internet → WiFi)"
     log "INFO" "    3. ZAANET_BLOCKED → Check blocks (WiFi only)"
-    log "INFO" "    4. ZAANET_AUTH_USERS → Check auth (WiFi only)"
+    log "INFO" "    4. ESTABLISHED/RELATED → ACCEPT (return traffic)"
     log "INFO" "    5. DROP (policy)"
 }
 
