@@ -15,57 +15,57 @@ install_dependencies() {
     }
     
     install_core_packages() {
-        log "Installing core packages..."
-        
-        case "$PKG_MANAGER" in
-            "apt")
-                apt-get install -y \
-                    curl wget git unzip \
-                    build-essential \
-                    hostapd dnsmasq \
-                    iptables iptables-persistent \
-                    iw wireless-tools \
-                    systemd net-tools jq \
-                    python3 python3-pip python3-dev
-                
-                # Try to install libnetfilter-queue-dev
-                apt-get install -y libnetfilter-queue-dev 2>/dev/null || \
-                apt-get install -y libnetfilter-queue1 2>/dev/null || \
-                log "Warning: libnetfilter-queue not found, will try pip installation"
-                ;;
-            "yum")
-                yum install -y \
-                    curl wget git unzip \
-                    gcc gcc-c++ make \
-                    hostapd dnsmasq \
-                    iptables iptables-services \
-                    iw wireless-tools \
-                    systemd net-tools jq \
-                    python3 python3-pip python3-devel \
-                    libnetfilter_queue-devel
-                ;;
-            "dnf")
-                dnf install -y \
-                    curl wget git unzip \
-                    gcc gcc-c++ make \
-                    hostapd dnsmasq \
-                    iptables iptables-services \
-                    iw wireless-tools \
-                    systemd net-tools jq \
-                    python3 python3-pip python3-devel \
-                    libnetfilter_queue-devel
-                ;;
-            "pacman")
-                pacman -S --noconfirm \
-                    curl wget git unzip base-devel \
-                    hostapd dnsmasq iptables \
-                    iw wireless_tools \
-                    systemd net-tools jq \
-                    python python-pip \
-                    libnetfilter_queue
-                ;;
-        esac
-    }
+    log "Installing core packages..."
+    
+    case "$PKG_MANAGER" in
+        "apt")
+            apt-get install -y \
+                curl wget git unzip \
+                build-essential \
+                hostapd dnsmasq \
+                iptables iptables-persistent \
+                iw \
+                systemd net-tools jq \
+                python3 python3-pip python3-dev
+            
+            # Try libnetfilter-queue-dev (optional)
+            apt-get install -y libnetfilter-queue-dev 2>/dev/null || \
+            apt-get install -y libnetfilter-queue1 2>/dev/null || \
+            log "libnetfilter-queue not available, continuing..."
+            ;;
+        "yum")
+            yum install -y \
+                curl wget git unzip \
+                gcc gcc-c++ make \
+                hostapd dnsmasq \
+                iptables iptables-services \
+                iw wireless-tools \
+                systemd net-tools jq \
+                python3 python3-pip python3-devel \
+                libnetfilter_queue-devel
+            ;;
+        "dnf")
+            dnf install -y \
+                curl wget git unzip \
+                gcc gcc-c++ make \
+                hostapd dnsmasq \
+                iptables iptables-services \
+                iw wireless-tools \
+                systemd net-tools jq \
+                python3 python3-pip python3-devel \
+                libnetfilter_queue-devel
+            ;;
+        "pacman")
+            pacman -S --noconfirm \
+                curl wget git unzip base-devel \
+                hostapd dnsmasq iptables \
+                iw wireless_tools \
+                systemd net-tools jq \
+                python python-pip \
+                libnetfilter_queue
+            ;;
+    esac
+}
     
     install_python_packages() {
         log "Installing Python packages for traffic monitoring..."
