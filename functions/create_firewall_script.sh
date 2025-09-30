@@ -158,6 +158,7 @@ setup_basic_rules() {
    
     log "SUCCESS" "Basic rules configured (DNS, DHCP, Portal, API access)"
 }
+
 create_auth_chains() {
     log "INFO" "Creating authentication chains..."
    
@@ -166,23 +167,30 @@ create_auth_chains() {
     iptables -N ZAANET_BLOCKED 2>/dev/null || true
    
     # === FORWARD Chain Structure ===
-    # 1. Check if IP is explicitly blocked
-    iptables -A FORWARD -j ZAANET_BLOCKED
+    
+    # 1. CRITICAL: Allow return traffic FIRST (internet → clients)
+    iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
    
-    # 2. Check authentication status for LAN traffic
+    # 2. Check if IP is explicitly blocked (only outgoing WiFi traffic)
+    iptables -A FORWARD -i "$LAN_IF" -j ZAANET_BLOCKED
+   
+    # 3. Check authentication status (only outgoing WiFi traffic)
     iptables -A FORWARD -i "$LAN_IF" -j ZAANET_AUTH_USERS
    
-    # 3. Inside AUTH chain: Allow established connections
-    iptables -A ZAANET_AUTH_USERS -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-   
-    # 4. Add NFQUEUE for monitoring (monitors NEW connections only, after ESTABLISHED)
+    # 4. Inside AUTH chain: NFQUEUE for monitoring
     iptables -A ZAANET_AUTH_USERS -j NFQUEUE --queue-num 0 --queue-bypass
+    # Note: User rules will be inserted at position 1 by TypeScript (BEFORE NFQUEUE)
+   
+    # 5. Everything else hits DROP (policy)
    
     log "SUCCESS" "Authentication chains configured"
-    log "INFO" " Chain: ZAANET_BLOCKED (for explicitly blocked IPs)"
-    log "INFO" " Chain: ZAANET_AUTH_USERS (authenticated users only)"
-    log "INFO" " Packet monitoring enabled on queue 0"
+    log "INFO" "  FORWARD rule order:"
+    log "INFO" "    1. ESTABLISHED/RELATED → ACCEPT (return traffic)"
+    log "INFO" "    2. ZAANET_BLOCKED → Check blocks (WiFi only)"
+    log "INFO" "    3. ZAANET_AUTH_USERS → Check auth (WiFi only)"
+    log "INFO" "    4. DROP (policy)"
 }
+
 test_configuration() {
     log "INFO" "Testing firewall configuration..."
    
