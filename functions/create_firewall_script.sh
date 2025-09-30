@@ -177,18 +177,15 @@ create_auth_chains() {
     # 3. Check authentication status (only outgoing WiFi traffic)
     iptables -A FORWARD -i "$LAN_IF" -j ZAANET_AUTH_USERS
    
-    # 4. Inside AUTH chain: NFQUEUE for monitoring
-    iptables -A ZAANET_AUTH_USERS -j NFQUEUE --queue-num 0 --queue-bypass
-    # Note: User rules will be inserted at position 1 by TypeScript (BEFORE NFQUEUE)
-   
-    # 5. Everything else hits DROP (policy)
+    # 4. Everything else hits DROP (policy)
    
     log "SUCCESS" "Authentication chains configured"
     log "INFO" "  FORWARD rule order:"
     log "INFO" "    1. ESTABLISHED/RELATED → ACCEPT (return traffic)"
-    log "INFO" "    2. ZAANET_BLOCKED → Check blocks (WiFi only)"
-    log "INFO" "    3. ZAANET_AUTH_USERS → Check auth (WiFi only)"
-    log "INFO" "    4. DROP (policy)"
+    log "INFO" "    2. DNS → ACCEPT (all users)"
+    log "INFO" "    3. ZAANET_BLOCKED → Check blocks (WiFi only)"
+    log "INFO" "    4. ZAANET_AUTH_USERS → Check auth (WiFi only)"
+    log "INFO" "    5. DROP (policy)"
 }
 
 test_configuration() {
