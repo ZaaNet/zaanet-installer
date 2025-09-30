@@ -43,7 +43,9 @@ source_functions() {
         "create_management_commands.sh"
         "create_system_user.sh"
         "create_systemd_services.sh"
-        "create_zaanet_scripts.sh"
+        "create_switcher_script.sh"      # New
+        "create_firewall_script.sh"      # New
+        "create_status_script.sh"        # New
         "get_essential_config.sh"
         "install_dependencies.sh"
         "set_permissions.sh"
@@ -56,7 +58,6 @@ source_functions() {
     for func_file in "${functions_to_load[@]}"; do
         local func_path="${FUNCTIONS_DIR}/${func_file}"
         if [[ -f "$func_path" ]]; then
-            # shellcheck source=/dev/null
             source "$func_path"
             log "✓ Loaded ${func_file}"
         else
@@ -124,7 +125,7 @@ verify_function_files() {
         error "Functions directory not found: $FUNCTIONS_DIR"
     fi
     
-    local required_functions=(
+       local required_functions=(
         "auto_detect_interfaces.sh"
         "check_device_compatibility.sh"
         "configure_auto_start.sh"
@@ -132,7 +133,9 @@ verify_function_files() {
         "create_management_commands.sh"
         "create_system_user.sh"
         "create_systemd_services.sh"
-        "create_zaanet_scripts.sh"
+        "create_switcher_script.sh"      # Updated
+        "create_firewall_script.sh"      # Updated
+        "create_status_script.sh"        # Updated
         "get_essential_config.sh"
         "install_dependencies.sh"
         "set_permissions.sh"
@@ -160,11 +163,9 @@ main() {
     show_banner
     check_root
     
-    # Verify and load all function files
     verify_function_files
     source_functions
     
-    # Now call the functions (these are defined in the sourced files)
     check_device_compatibility
     auto_detect_interfaces
     get_essential_config
@@ -177,15 +178,18 @@ main() {
     create_system_user
     setup_application
     configure_network_services
-    create_zaanet_scripts
+    
+    # Create scripts individually
+    create_switcher_script
+    create_firewall_script
+    create_status_script
+    
     create_systemd_services
     create_management_commands
     set_permissions
     configure_auto_start
     
     show_completion
-    
-    log "🎉 ZaaNet auto-installation completed successfully!"
 }
 
 # Global error handling
