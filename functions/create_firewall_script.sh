@@ -166,14 +166,23 @@ create_auth_chains() {
     iptables -N ZAANET_AUTH_USERS 2>/dev/null || true
     iptables -N ZAANET_BLOCKED 2>/dev/null || true
    
+    # Remove any existing jumps to avoid duplicates
+    while iptables -D FORWARD -j ZAANET_AUTH_USERS 2>/dev/null; do
+        log "INFO" "Removed existing AUTH chain jump"
+    done
+    
+    while iptables -D FORWARD -j ZAANET_BLOCKED 2>/dev/null; do
+        log "INFO" "Removed existing BLOCKED chain jump"
+    done
+   
     # === FORWARD Chain Structure ===
     
-    # 1. CRITICAL: Check authentication FIRST (both directions for counting)
-    # Outbound traffic (uploads): WiFi → Internet
-    iptables -I FORWARD 1 -i "$LAN_IF" -j ZAANET_AUTH_USERS
-    
+    # 1. Check authentication FIRST (both directions for counting)
     # Inbound traffic (downloads): Internet → WiFi
     iptables -I FORWARD 1 -o "$LAN_IF" -j ZAANET_AUTH_USERS
+    
+    # Outbound traffic (uploads): WiFi → Internet
+    iptables -I FORWARD 1 -i "$LAN_IF" -j ZAANET_AUTH_USERS
    
     # 2. Check if IP is explicitly blocked (only outgoing WiFi traffic)
     iptables -A FORWARD -i "$LAN_IF" -j ZAANET_BLOCKED
@@ -185,10 +194,10 @@ create_auth_chains() {
    
     log "SUCCESS" "Authentication chains configured"
     log "INFO" "  FORWARD rule order:"
-    log "INFO" "    1. Check auth outbound (WiFi → Internet)"
-    log "INFO" "    2. Check auth inbound (Internet → WiFi)"
-    log "INFO" "    3. ZAANET_BLOCKED → Check blocks (WiFi only)"
-    log "INFO" "    4. ESTABLISHED/RELATED → ACCEPT (return traffic)"
+    log "INFO" "    1. AUTH inbound (Internet → WiFi)"
+    log "INFO" "    2. AUTH outbound (WiFi → Internet)"
+    log "INFO" "    3. BLOCKED check"
+    log "INFO" "    4. ESTABLISHED/RELATED"
     log "INFO" "    5. DROP (policy)"
 }
 
