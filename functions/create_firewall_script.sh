@@ -101,7 +101,6 @@ cleanup_rules() {
    
     # Clean up NAT rules for captive portal
     iptables -t nat -D PREROUTING -i "$LAN_IF" -p tcp --dport 80 -j DNAT --to-destination $PORTAL_IP:$PORTAL_PORT 2>/dev/null || true
-    iptables -t nat -D PREROUTING -i "$LAN_IF" -p tcp --dport 443 -j DNAT --to-destination $PORTAL_IP:$PORTAL_PORT 2>/dev/null || true
    
     log "SUCCESS" "Cleanup completed"
 }
@@ -125,16 +124,12 @@ setup_nat() {
         log "WARNING" "No WAN interface available, internet sharing disabled"
     fi
    
-    # PREROUTING: Redirect HTTP/HTTPS to captive portal
-    # This catches all HTTP/HTTPS traffic and redirects to portal
-    # Authenticated users will bypass this via RETURN rules added dynamically
+    # PREROUTING: Redirect HTTP ONLY to captive portal
+    # DO NOT redirect HTTPS - it causes SSL errors for authenticated users
     iptables -t nat -A PREROUTING -i "$LAN_IF" -p tcp --dport 80 \
         -j DNAT --to-destination $PORTAL_IP:$PORTAL_PORT
    
-    iptables -t nat -A PREROUTING -i "$LAN_IF" -p tcp --dport 443 \
-        -j DNAT --to-destination $PORTAL_IP:$PORTAL_PORT
-   
-    log "SUCCESS" "Captive portal redirection: HTTP/HTTPS → $PORTAL_IP:$PORTAL_PORT"
+    log "SUCCESS" "Captive portal redirection: HTTP only → $PORTAL_IP:$PORTAL_PORT"
 }
 setup_basic_rules() {
     log "INFO" "Setting up basic firewall rules..."
