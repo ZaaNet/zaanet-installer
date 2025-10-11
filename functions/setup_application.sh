@@ -123,7 +123,7 @@ NODE_ENV=production
 # SYSTEM INFORMATION
 # =============================================================================
 INSTALLER_VERSION=1.0.0
-INSTALL_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+INSTALL_DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 DEVICE_MODEL=${DEVICE_MODEL:-Unknown}
 DEVICE_TYPE=${DEVICE_TYPE:-Unknown}
 
